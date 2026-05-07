@@ -3,7 +3,6 @@
 # 🏛️ UBID: Business Identity Resolution & Activity Intelligence Layer
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=Streamlit&logoColor=white)
 ![NetworkX](https://img.shields.io/badge/NetworkX-Graph_Clustering-lightgrey)
 ![RapidFuzz](https://img.shields.io/badge/RapidFuzz-Fuzzy_Matching-success)
 
