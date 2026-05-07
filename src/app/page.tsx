@@ -201,10 +201,10 @@ export default function Home() {
           </form>
         )}
 
-        <div style={{ marginTop: "3rem", borderTop: "1px solid var(--border-color)", paddingTop: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>Ready to Process?</h2>
-            <p style={{ color: "var(--text-secondary)" }}>
+        <div style={{ marginTop: "3rem", borderTop: "1px solid var(--border-color)", paddingTop: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.5rem" }}>
+          <div style={{ flex: "1", minWidth: "300px" }}>
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem", fontWeight: "600" }}>Ready to Process?</h2>
+            <p style={{ color: "var(--text-secondary)", margin: 0 }}>
               After ingesting your records, head over to the matching engine.
             </p>
           </div>
@@ -212,7 +212,14 @@ export default function Home() {
             type="button" 
             className="btn" 
             onClick={() => window.location.href = "/matching"}
-            style={{ backgroundColor: "var(--warning-color)", color: "#000" }}
+            style={{ 
+              backgroundColor: "var(--warning-color)", 
+              color: "#000", 
+              fontWeight: "600",
+              padding: "0.75rem 1.5rem",
+              whiteSpace: "nowrap",
+              flexShrink: 0
+            }}
           >
             <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               Go to Matching Engine <ArrowRight size={18} />
