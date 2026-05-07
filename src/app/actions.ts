@@ -71,7 +71,7 @@ export async function suggestColumnMapping(headers: string[], sampleRows: any[])
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
 You are an expert data integration assistant.
@@ -764,9 +764,9 @@ export async function runActivityInferenceEngine() {
     let updatedCount = 0;
     const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // gemini-1.5-flash is fine — we only make 1 API call total per run now (BATCH_SIZE=10000)
+    // gemini-2.0-flash is fine — we only make 1 API call total per run now (BATCH_SIZE=10000)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Handle no-event records instantly (no LLM needed)
     for (const uni of unifiedRecords) {
@@ -1032,7 +1032,7 @@ export async function executeNLQuery(query: string) {
     if (!apiKey) return { success: false, error: "GEMINI_API_KEY is missing." };
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Step 1: SQL Generation
     const sqlPrompt = `
