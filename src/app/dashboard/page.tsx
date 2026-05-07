@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getUnifiedRecords, getReviewCount, getEventReviewCount } from "../actions";
-import { Loader2, ShieldAlert, ArrowRight, Building, Search, Eye, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { getUnifiedRecords, getReviewCount, getEventReviewCount, runActivityInferenceEngine } from "../actions";
+import { Loader2, ShieldAlert, ArrowRight, Building, Search, Eye, ChevronLeft, ChevronRight, AlertCircle, Zap, RefreshCw } from "lucide-react";
 
 export default function DashboardPage() {
   const [records, setRecords] = useState<any[]>([]);
@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [eventReviewCount, setEventReviewCount] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [inferring, setInferring] = useState(false);
   const [filters, setFilters] = useState({ name: "", address: "", dept: "", id: "", status: "All", ubid: "", score: "", reasoning: "", activity: "All" });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
 
@@ -75,6 +76,31 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <button
+            className="btn"
+            onClick={() => fetchData(page, debouncedFilters)}
+            disabled={loading}
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            <RefreshCw size={18} className={loading ? "spin" : ""} />
+            Sync
+          </button>
+
+          <button
+            className="btn"
+            onClick={async () => {
+              setInferring(true);
+              await runActivityInferenceEngine();
+              fetchData(page, debouncedFilters);
+              setInferring(false);
+            }}
+            disabled={inferring}
+            style={{ backgroundColor: "var(--success-color)", color: "#000", display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            {inferring ? <Loader2 size={18} className="spin" /> : <Zap size={18} />}
+            Run AI Analysis
+          </button>
+
           {reviewCount > 0 && (
             <button
               className="btn"
@@ -82,7 +108,7 @@ export default function DashboardPage() {
               style={{ backgroundColor: "rgba(245, 158, 11, 0.1)", color: "var(--warning-color)", border: "1px solid var(--warning-color)", display: "flex", alignItems: "center", gap: "0.5rem" }}
             >
               <ShieldAlert size={18} />
-              {reviewCount} master data {reviewCount === 1 ? "entry" : "entries"} need review
+              {reviewCount} Master Reviews
               <ArrowRight size={18} />
             </button>
           )}
@@ -93,7 +119,7 @@ export default function DashboardPage() {
               style={{ backgroundColor: "rgba(139, 92, 246, 0.1)", color: "var(--accent-color)", border: "1px solid var(--accent-color)", display: "flex", alignItems: "center", gap: "0.5rem" }}
             >
               <AlertCircle size={18} />
-              {eventReviewCount} event {eventReviewCount === 1 ? "match" : "matches"} need review
+              {eventReviewCount} Event Reviews
               <ArrowRight size={18} />
             </button>
           )}

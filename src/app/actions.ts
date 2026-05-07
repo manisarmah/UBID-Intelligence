@@ -150,7 +150,7 @@ export async function uploadCsvAction(formData: FormData, mappingStr: string, gl
     });
 
     const dbRecords = records.map((record: any) => {
-      const mappedRecord: any = { departmentName: globalDept || "Unknown", departmentId: "NaN" }; // Default
+      const mappedRecord: any = { departmentName: globalDept || "Unknown", departmentId: null }; // Default
       
       for (const [csvHeader, targetKey] of Object.entries(mapping)) {
         if (targetKey !== "IGNORE" && targetKey) {
@@ -195,6 +195,10 @@ export async function runMatchingEngine() {
     let reviewCount = 0;
     let newUnifiedCount = 0;
 
+    const ops: any[] = [];
+    const HIGH_THRESHOLD = 0.85;
+    const MEDIUM_THRESHOLD = 0.65;
+
     for (const raw of pendingRecords) {
       let bestMatch = null;
       let bestConfidence = 0;
@@ -209,13 +213,8 @@ export async function runMatchingEngine() {
         }
       }
 
-      // Confidence Thresholds
-      const HIGH_THRESHOLD = 0.85;
-      const MEDIUM_THRESHOLD = 0.65;
-
       if (bestMatch && bestConfidence >= HIGH_THRESHOLD) {
-        // Auto-link
-        await prisma.rawRecord.update({
+        ops.push(prisma.rawRecord.update({
           where: { id: raw.id },
           data: {
             status: "AUTO_LINKED",
@@ -223,7 +222,7 @@ export async function runMatchingEngine() {
             matchScore: bestConfidence,
             matchReason: bestReason
           }
-        });
+        }));
 
         const updateData: any = {};
         if (!bestMatch.pan && raw.pan) updateData.pan = raw.pan;
@@ -232,22 +231,15 @@ export async function runMatchingEngine() {
         if (!bestMatch.city && raw.city) updateData.city = raw.city;
         
         if (Object.keys(updateData).length > 0) {
-           await prisma.unifiedRecord.update({
+           ops.push(prisma.unifiedRecord.update({
              where: { ubid: bestMatch.ubid },
              data: updateData
-           });
-           Object.assign(bestMatch, updateData); // Update local cache
+           }));
+           Object.assign(bestMatch, updateData);
         }
-
         autoLinkedCount++;
       } else if (bestMatch && bestConfidence >= MEDIUM_THRESHOLD) {
-        // Human Review
-        // We link rawRecordId1 to the RawRecord that created the UnifiedRecord, or just store the UnifiedRecord id in rawRecordId2.
-        // Wait, LinkDoubt needs to point to two RawRecords or a RawRecord and a UnifiedRecord.
-        // Let's modify LinkDoubt to compare a RawRecord to a UnifiedRecord.
-        // Currently LinkDoubt has rawRecordId1 and rawRecordId2. 
-        // We can just put the RawRecord.id in 1, and UnifiedRecord.ubid in 2.
-        await prisma.linkDoubt.create({
+        ops.push(prisma.linkDoubt.create({
           data: {
             rawRecordId1: raw.id,
             rawRecordId2: bestMatch.ubid,
@@ -255,42 +247,46 @@ export async function runMatchingEngine() {
             status: "PENDING",
             comments: "AI detected partial match. Needs human review."
           }
-        });
-        
-        await prisma.rawRecord.update({
+        }));
+        ops.push(prisma.rawRecord.update({
           where: { id: raw.id },
-          data: { 
-            status: "REVIEW",
-            matchScore: bestConfidence,
-            matchReason: `Review required. ${bestReason}`
-          }
-        });
+          data: { status: "REVIEW", matchScore: bestConfidence, matchReason: `Review required. ${bestReason}` }
+        }));
         reviewCount++;
       } else {
-        // Create new Unified Identity
-        const newUni = await prisma.unifiedRecord.create({
+        const newUbid = crypto.randomUUID();
+        ops.push(prisma.unifiedRecord.create({
           data: {
+            ubid: newUbid,
             businessName: raw.businessName,
             address: raw.address,
             pincode: raw.pincode,
             city: raw.city,
             pan: raw.pan,
             gstin: raw.gstin,
+            activityStatus: "UNKNOWN"
           }
-        });
-        unifiedRecords.push(newUni); // Add to local cache for subsequent matching
-        
-        await prisma.rawRecord.update({
+        }));
+        ops.push(prisma.rawRecord.update({
           where: { id: raw.id },
           data: {
             status: "NEW_ENTITY",
-            ubid: newUni.ubid,
+            ubid: newUbid,
             matchScore: bestConfidence,
             matchReason: bestMatch ? `Low confidence. ${bestReason} Created new identity.` : "No existing identities to compare. Created new identity."
           }
-        });
+        }));
         newUnifiedCount++;
       }
+
+      if (ops.length >= 50) {
+        await prisma.$transaction(ops);
+        ops.length = 0;
+      }
+    }
+
+    if (ops.length > 0) {
+      await prisma.$transaction(ops);
     }
 
     return {
@@ -341,25 +337,25 @@ export async function getUnifiedRecords(page = 1, limit = 10, filters: any = {})
     const skip = (page - 1) * limit;
 
     const whereClause: any = {};
-    if (filters.name) whereClause.businessName = { contains: filters.name };
-    if (filters.address) whereClause.address = { contains: filters.address };
-    if (filters.ubid) whereClause.ubid = { contains: filters.ubid };
+    if (filters.name) whereClause.businessName = { contains: filters.name, mode: 'insensitive' };
+    if (filters.address) whereClause.address = { contains: filters.address, mode: 'insensitive' };
+    if (filters.ubid) whereClause.ubid = { contains: filters.ubid, mode: 'insensitive' };
     if (filters.activity && filters.activity !== "All") whereClause.activityStatus = filters.activity;
     if (filters.id) {
       whereClause.OR = [
-        { pan: { contains: filters.id } },
-        { gstin: { contains: filters.id } }
+        { pan: { contains: filters.id, mode: 'insensitive' } },
+        { gstin: { contains: filters.id, mode: 'insensitive' } }
       ];
     }
     
     const rawRecordFilter: any = {};
-    if (filters.dept) rawRecordFilter.departmentName = { contains: filters.dept };
+    if (filters.dept) rawRecordFilter.departmentName = { contains: filters.dept, mode: 'insensitive' };
     if (filters.status && filters.status !== "All" && filters.status !== "IN_REVIEW") rawRecordFilter.status = filters.status;
     if (filters.score) {
       const s = parseFloat(filters.score) / 100;
       if (!isNaN(s)) rawRecordFilter.matchScore = { gte: s };
     }
-    if (filters.reasoning) rawRecordFilter.matchReason = { contains: filters.reasoning };
+    if (filters.reasoning) rawRecordFilter.matchReason = { contains: filters.reasoning, mode: 'insensitive' };
 
     if (Object.keys(rawRecordFilter).length > 0) {
       whereClause.rawRecords = { some: rawRecordFilter };
@@ -648,100 +644,106 @@ export async function runEventMappingEngine() {
     let pendingMasterCount = 0;
     const linkedUbids = new Set<string>(); // track which UBIDs got direct events linked
 
-    for (const event of pendingEvents) {
+    const ops: any[] = [];
+    const FUZZY_REVIEW_THRESHOLD = 0.75;
 
-      // ── STEP 1: Department ID exact match (search ALL RawRecords regardless of dept name) ──
-      let directMatch: typeof rawRecords[0] | undefined;
-      if (event.departmentId) {
-        directMatch = rawRecords.find(r => r.departmentId === event.departmentId && r.ubid);
+    for (const event of pendingEvents) {
+      // ── STEP 1: Department ID exact match ──
+      let directMatch: any;
+      const eventDeptId = event.departmentId?.toString().trim();
+      if (eventDeptId && eventDeptId !== "NaN") {
+        directMatch = rawRecords.find(r => r.departmentId?.toString().trim() === eventDeptId && r.ubid);
       }
 
       if (directMatch && directMatch.ubid) {
         const targetUbid = directMatch.ubid;
-        // Check: is the master data for this UBID still under review?
         if (ubidsWithPendingMasterReview.has(targetUbid)) {
-          await prisma.activityEvent.update({
+          ops.push(prisma.activityEvent.update({
             where: { id: event.id },
             data: { status: "PENDING_MASTER_REVIEW", ubid: targetUbid }
-          });
+          }));
           pendingMasterCount++;
         } else {
-          // Direct link — clean and confirmed
-          await prisma.activityEvent.update({
+          ops.push(prisma.activityEvent.update({
             where: { id: event.id },
             data: { status: "LINKED", ubid: targetUbid }
-          });
+          }));
           linkedUbids.add(targetUbid);
           linkedCount++;
         }
-        continue;
-      }
+      } else {
+        // ── STEP 2: Fuzzy fallback ──
+        let bestMatch: any = null;
+        let bestConfidence = 0;
 
-      // ── STEP 2: Fuzzy fallback (only runs if no dept ID match found) ──
-      let bestMatch: typeof unifiedRecords[0] | null = null;
-      let bestConfidence = 0;
+        if (event.pan) {
+          const m = unifiedRecords.find(u => u.pan === event.pan);
+          if (m) { bestMatch = m; bestConfidence = 1.0; }
+        }
+        if (!bestMatch && event.gstin) {
+          const m = unifiedRecords.find(u => u.gstin === event.gstin);
+          if (m) { bestMatch = m; bestConfidence = 1.0; }
+        }
 
-      // Quick anchors first
-      if (event.pan) {
-        const m = unifiedRecords.find(u => u.pan === event.pan);
-        if (m) { bestMatch = m; bestConfidence = 1.0; }
-      }
-      if (!bestMatch && event.gstin) {
-        const m = unifiedRecords.find(u => u.gstin === event.gstin);
-        if (m) { bestMatch = m; bestConfidence = 1.0; }
-      }
-
-      // Name/address fuzzy
-      if (!bestMatch) {
-        for (const uni of unifiedRecords) {
-          const mockRaw: any = {
-            businessName: event.businessName || "",
-            address: event.address || "",
-            pincode: event.pincode,
-            city: event.city,
-            pan: event.pan,
-            gstin: event.gstin
-          };
-          const result = calculateConfidence(mockRaw, uni);
-          if (result.score > bestConfidence) {
-            bestConfidence = result.score;
-            bestMatch = uni;
+        if (!bestMatch) {
+          for (const uni of unifiedRecords) {
+            const mockRaw: any = {
+              businessName: event.businessName || "",
+              address: event.address || "",
+              pincode: event.pincode,
+              city: event.city,
+              pan: event.pan,
+              gstin: event.gstin
+            };
+            const result = calculateConfidence(mockRaw, uni);
+            if (result.score > bestConfidence) {
+              bestConfidence = result.score;
+              bestMatch = uni;
+            }
           }
         }
+
+        if (bestMatch && bestConfidence >= FUZZY_REVIEW_THRESHOLD) {
+          if (ubidsWithPendingMasterReview.has(bestMatch.ubid)) {
+            ops.push(prisma.activityEvent.update({
+              where: { id: event.id },
+              data: { status: "PENDING_MASTER_REVIEW", ubid: bestMatch.ubid }
+            }));
+            pendingMasterCount++;
+          } else {
+            ops.push(prisma.eventDoubt.create({
+              data: {
+                eventId: event.id,
+                ubid: bestMatch.ubid,
+                confidence: bestConfidence,
+                status: "PENDING",
+                comments: `Fuzzy match at ${(bestConfidence * 100).toFixed(0)}% confidence. Requires human review.`
+              }
+            }));
+            ops.push(prisma.activityEvent.update({
+              where: { id: event.id },
+              data: { status: "REVIEW" }
+            }));
+            reviewCount++;
+          }
+        } else {
+          ops.push(prisma.activityEvent.update({
+            where: { id: event.id },
+            data: { status: "REJECTED" }
+          }));
+          rejectedCount++;
+        }
       }
 
-      const FUZZY_REVIEW_THRESHOLD = 0.75; // per spec: ≥75% → review, <75% → rejected
+      if (ops.length >= 50) {
+        await prisma.$transaction(ops);
+        ops.length = 0;
+      }
+    }
 
-      if (bestMatch && bestConfidence >= FUZZY_REVIEW_THRESHOLD) {
-        // Check master review block
-        if (ubidsWithPendingMasterReview.has(bestMatch.ubid)) {
-          await prisma.activityEvent.update({
-            where: { id: event.id },
-            data: { status: "PENDING_MASTER_REVIEW", ubid: bestMatch.ubid }
-          });
-          pendingMasterCount++;
-        } else {
-          await prisma.eventDoubt.create({
-            data: {
-              eventId: event.id,
-              ubid: bestMatch.ubid,
-              confidence: bestConfidence,
-              status: "PENDING",
-              comments: `Fuzzy match at ${(bestConfidence * 100).toFixed(0)}% confidence. Requires human review.`
-            }
-          });
-          await prisma.activityEvent.update({
-            where: { id: event.id },
-            data: { status: "REVIEW" }
-          });
-          reviewCount++;
-        }
-      } else {
-        await prisma.activityEvent.update({
-          where: { id: event.id },
-          data: { status: "REJECTED" }
-        });
-        rejectedCount++;
+    if (ops.length > 0) {
+      await prisma.$transaction(ops);
+    }edCount++;
       }
     }
 
