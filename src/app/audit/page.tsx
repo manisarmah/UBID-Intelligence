@@ -19,7 +19,7 @@ export default function AuditPage() {
   const fetchLogs = async () => {
     setLoading(true);
     const res = await getAuditLogs();
-    if (res.success) {
+    if (res.success && res.masterData && res.events) {
       setLogs({ masterData: res.masterData, events: res.events });
     }
     setLoading(false);
@@ -35,11 +35,11 @@ export default function AuditPage() {
         setHighlightId(id);
         
         // Find which page it's on
-        const masterIndex = logsData.masterData.findIndex((r: any) => r.id === id);
+        const masterIndex = logsData.masterData?.findIndex((r: any) => r.id === id) ?? -1;
         if (masterIndex !== -1) {
           setMasterPage(Math.ceil((masterIndex + 1) / ITEMS_PER_PAGE));
         } else {
-          const eventIndex = logsData.events.findIndex((e: any) => e.id === id);
+          const eventIndex = logsData.events?.findIndex((e: any) => e.id === id) ?? -1;
           if (eventIndex !== -1) {
             setEventPage(Math.ceil((eventIndex + 1) / ITEMS_PER_PAGE));
           }

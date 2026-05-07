@@ -26,9 +26,9 @@ export default function MatchingPage() {
   const fetchRecords = async (p: number, currentFilters: any) => {
     setLoading(true);
     const res = await getPendingRecords(p, 10, currentFilters);
-    if (res.success) {
+    if (res.success && res.records) {
       setRecords(res.records);
-      setTotal(res.total);
+      setTotal(res.total || 0);
     }
     setLoading(false);
   };

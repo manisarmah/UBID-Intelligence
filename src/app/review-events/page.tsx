@@ -26,7 +26,7 @@ function EventReviewContent() {
   const fetchDoubts = async () => {
     setLoading(true);
     const res = await getPendingEventDoubts();
-    if (res.success) {
+    if (res.success && res.doubts) {
       setDoubts(res.doubts);
       if (!selectedId && res.doubts.length > 0) {
         const firstId = res.doubts[0].id;

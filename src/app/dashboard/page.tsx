@@ -30,12 +30,12 @@ export default function DashboardPage() {
       getEventReviewCount()
     ]);
 
-    if (unifiedRes.success) {
+    if (unifiedRes.success && unifiedRes.records) {
       setRecords(unifiedRes.records);
-      setTotal(unifiedRes.total);
+      setTotal(unifiedRes.total || 0);
     }
-    if (reviewRes.success) setReviewCount(reviewRes.count);
-    if (eventReviewRes.success) setEventReviewCount(eventReviewRes.count);
+    if (reviewRes.success && reviewRes.count !== undefined) setReviewCount(reviewRes.count);
+    if (eventReviewRes.success && eventReviewRes.count !== undefined) setEventReviewCount(eventReviewRes.count);
 
     setLoading(false);
   };

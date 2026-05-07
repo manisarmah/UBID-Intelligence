@@ -48,7 +48,7 @@ export async function parseCsvHeaders(formData: FormData) {
       columns: true,
       skip_empty_lines: true,
       trim: true,
-    });
+    }) as any[];
     
     if (records.length === 0) return { success: false, error: "CSV is empty" };
     
@@ -582,7 +582,7 @@ export async function parseEventCsvHeaders(formData: FormData) {
     const file = formData.get("file") as File;
     if (!file) return { success: false, error: "No file provided" };
     const text = await file.text();
-    const records = parse(text, { columns: true, skip_empty_lines: true, trim: true });
+    const records = parse(text, { columns: true, skip_empty_lines: true, trim: true }) as any[];
     if (records.length === 0) return { success: false, error: "CSV is empty" };
     return { success: true, headers: Object.keys(records[0]), sampleRows: records.slice(0, 3) };
   } catch (error: any) {
@@ -595,7 +595,7 @@ export async function uploadEventsAction(formData: FormData, mappingStr: string,
     const file = formData.get("file") as File;
     const mapping = JSON.parse(mappingStr);
     const text = await file.text();
-    const records = parse(text, { columns: true, skip_empty_lines: true, trim: true });
+    const records = parse(text, { columns: true, skip_empty_lines: true, trim: true }) as any[];
 
     const dbRecords = records.map((record: any) => {
       const mappedRecord: any = { departmentName: globalDept, eventDate: new Date(), status: "PENDING" };
