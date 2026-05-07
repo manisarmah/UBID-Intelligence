@@ -2,10 +2,10 @@
 
 # 🏛️ UBID: Business Identity Resolution & Activity Intelligence Layer
 
-![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![NetworkX](https://img.shields.io/badge/NetworkX-Graph_Clustering-lightgrey)
-![RapidFuzz](https://img.shields.io/badge/RapidFuzz-Fuzzy_Matching-success)
-
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-black?style=flat&logo=next.js&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=flat&logo=Prisma&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)
 A confidence-driven platform built for **Karnataka Commerce & Industries** to transform fragmented departmental data silos into a unified, intelligent, and actionable business intelligence layer.
 
 ---
