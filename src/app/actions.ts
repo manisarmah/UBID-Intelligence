@@ -1036,33 +1036,34 @@ export async function executeNLQuery(query: string) {
 
     // Step 1: SQL Generation
     const sqlPrompt = `
-You are an expert Data Analyst and SQLite database engineer working on the UBID (Unique Business Identifier) platform for Karnataka.
+You are an expert Data Analyst and PostgreSQL database engineer working on the UBID (Unique Business Identifier) platform for Karnataka.
 Our goal is to map fragmented business records and track their activity (Active, Dormant, Closed) across multiple department systems without altering the source databases.
 
-DATABASE SCHEMA:
-- UnifiedRecord (ubid, businessName, address, pincode, city, pan, gstin, activityStatus, activityReason, createdAt, updatedAt): The single source of truth for a unique business. 'activityStatus' is exactly one of: 'ACTIVE', 'DORMANT', 'CLOSED', or 'UNKNOWN'.
-- RawRecord (id, departmentName, departmentId, businessName, address, pincode, city, pan, gstin, phone, email, businessType, status, matchScore, matchReason, ubid, createdAt, updatedAt): Represents raw fragmented departmental data. 'status' is exactly one of: 'PENDING', 'AUTO_LINKED', 'MANUAL_LINK', 'NEW_ENTITY'.
-- ActivityEvent (id, departmentName, departmentId, eventType, eventDate, description, metadata, businessName, address, pincode, city, pan, gstin, ubid, status, createdAt, updatedAt): Represents raw operational events (e.g., inspections, consumption).
-- LinkDoubt (id, rawRecordId1, rawRecordId2, confidence, status, comments, createdAt): Represents ambiguous matches sent for human review.
-- EventDoubt (id, eventId, ubid, confidence, status, comments, createdAt): Represents ambiguous event mappings sent for human review.
+DATABASE SCHEMA (PostgreSQL):
+- "UnifiedRecord" ("ubid", "businessName", "address", "pincode", "city", "pan", "gstin", "activityStatus", "activityReason", "createdAt", "updatedAt"): The single source of truth for a unique business. 'activityStatus' is exactly one of: 'ACTIVE', 'DORMANT', 'CLOSED', or 'UNKNOWN'.
+- "RawRecord" ("id", "departmentName", "departmentId", "businessName", "address", "pincode", "city", "pan", "gstin", "phone", "email", "businessType", "status", "matchScore", "matchReason", "ubid", "createdAt", "updatedAt"): Represents raw fragmented departmental data. 'status' is exactly one of: 'PENDING', 'AUTO_LINKED', 'MANUAL_LINK', 'NEW_ENTITY'.
+- "ActivityEvent" ("id", "departmentName", "departmentId", "eventType", "eventDate", "description", "metadata", "businessName", "address", "pincode", "city", "pan", "gstin", "ubid", "status", "createdAt", "updatedAt"): Represents raw operational events (e.g., inspections, consumption).
+- "LinkDoubt" ("id", "rawRecordId1", "rawRecordId2", "confidence", "status", "comments", "createdAt"): Represents ambiguous matches sent for human review.
+- "EventDoubt" ("id", "eventId", "ubid", "confidence", "status", "comments", "createdAt"): Represents ambiguous event mappings sent for human review.
 
 APPLICATION LOGIC & DICTIONARY (CRITICAL):
-1. **"Unique Businesses"**: Refers to the 'UnifiedRecord' table. Do NOT count RawRecords to find unique businesses.
-2. **"Active / Dormant / Closed"**: Explicitly refers to the 'activityStatus' column in the 'UnifiedRecord' table! Do NOT try to infer this by checking for empty ActivityEvents. If someone asks for "dormant businesses", query "UnifiedRecord.activityStatus = 'DORMANT'".
-3. **"Linked / Merged / Fragmented"**: Refers to 'RawRecord's that have been assigned a 'ubid' (status = AUTO_LINKED or MANUAL_LINK).
-4. **"Doubts / Ambiguous / Review"**: Refers to the 'LinkDoubt' or 'EventDoubt' tables where human reviewers intervene.
-5. **Geographic Searches (City/Pincode)**: Data is extremely messy. 'city' might be blank. If a user asks for a city (e.g., "Bangalore"), ALWAYS cast a wide net using LOWER() and LIKE on the 'address' column as a fallback, and ALWAYS expand semantic aliases naturally (e.g., '%bangalore%', '%bengaluru%', '%blr%'). Do the same for pincodes (check if the pincode string exists inside the address).
+1. **"Unique Businesses"**: Refers to the "UnifiedRecord" table. Do NOT count RawRecords to find unique businesses.
+2. **"Active / Dormant / Closed"**: Explicitly refers to the "activityStatus" column in the "UnifiedRecord" table! Do NOT try to infer this by checking for empty ActivityEvents. If someone asks for "dormant businesses", query "UnifiedRecord"."activityStatus" = 'DORMANT'.
+3. **"Linked / Merged / Fragmented"**: Refers to "RawRecord"s that have been assigned a "ubid" (status = AUTO_LINKED or MANUAL_LINK).
+4. **"Doubts / Ambiguous / Review"**: Refers to the "LinkDoubt" or "EventDoubt" tables where human reviewers intervene.
+5. **Geographic Searches (City/Pincode)**: Data is extremely messy. 'city' might be blank. If a user asks for a city (e.g., "Bangalore"), ALWAYS cast a wide net using LOWER() and ILIKE (Postgres case-insensitive like) on the "address" column as a fallback, and ALWAYS expand semantic aliases naturally (e.g., '%bangalore%', '%bengaluru%', '%blr%'). Do the same for pincodes (check if the pincode string exists inside the address).
 
 USER QUERY: "${query}"
 
 INSTRUCTIONS:
 1. Perform a deep semantic analysis of the query. Think step-by-step using the Application Logic dictionary.
-2. Translate this logic into a highly robust, optimized, READ-ONLY SQLite query (SELECT only). Use DISTINCT where necessary.
-3. Provide a JSON response (without markdown formatting) with the following strictly defined keys:
+2. Translate this logic into a highly robust, optimized, READ-ONLY PostgreSQL query (SELECT only).
+3. CRITICAL: You MUST use double quotes for ALL table and column names (e.g., "UnifiedRecord"."businessName") because PostgreSQL is case-sensitive for unquoted identifiers.
+4. Provide a JSON response (without markdown formatting) with the following strictly defined keys:
    {
      "isValid": boolean (true if the query relates to the domain; false otherwise),
      "thoughtProcess": "string (explain your step-by-step reasoning on how you parsed the intent, expanded edge cases, and mapped it to the specific schema rules above)",
-     "sql": "string (the final robust SQLite query)",
+     "sql": "string (the final robust PostgreSQL query with double-quoted identifiers)",
      "explanation": "string (a very brief, user-friendly 1-2 sentence summary of what the query is going to do)"
    }
 `;

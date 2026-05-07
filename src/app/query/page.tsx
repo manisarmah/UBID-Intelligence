@@ -24,10 +24,10 @@ export default function QueryPage() {
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem", display: "flex", flexDirection: "column", gap: "2rem", minHeight: "calc(100vh - 65px)" }}>
       <div>
         <h1 className="title" style={{ fontSize: "2rem", display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-          <Sparkles color="var(--primary-color)" /> Natural Language Query
+          Ask Me Anything 💡
         </h1>
         <p className="subtitle" style={{ fontSize: "1rem" }}>
-          Ask questions about your unified database in plain English. The AI will translate it into secure SQL and return the results.
+          Ask questions about your unified database in plain English. The AI will find exactly what you need and show the results instantly.
         </p>
       </div>
 
