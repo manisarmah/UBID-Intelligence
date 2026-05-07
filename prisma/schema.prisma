@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model RawRecord {
+  id             String         @id @default(uuid())
+  departmentName String
+  departmentId   String?
+  businessName   String
+  address        String
+  pincode        String?
+  city           String?
+  pan            String?
+  gstin          String?
+  phone          String?
+  email          String?
+  businessType   String?
+  status         String         @default("PENDING") // PENDING, LINKED, REVIEW
+  matchScore     Float?
+  matchReason    String?
+  ubid           String?
+  unifiedRecord  UnifiedRecord? @relation(fields: [ubid], references: [ubid])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+}
+
+model LinkDoubt {
+  id           String   @id @default(uuid())
+  rawRecordId1 String
+  rawRecordId2 String
+  confidence   Float
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  comments     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model UnifiedRecord {
+  ubid         String      @id @default(uuid())
+  businessName String
+  address      String
+  pincode        String?
+  city           String?
+  pan            String?
+  gstin          String?
+  activityStatus String          @default("UNKNOWN") // ACTIVE, DORMANT, CLOSED, UNKNOWN
+  activityReason String?
+  rawRecords     RawRecord[]
+  activityEvents ActivityEvent[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model ActivityEvent {
+  id             String         @id @default(uuid())
+  departmentName String
+  departmentId   String?
+  eventType      String
+  eventDate      DateTime
+  description    String?
+  metadata       String?
+  businessName   String?
+  address        String?
+  pincode        String?
+  city           String?
+  pan            String?
+  gstin          String?
+  ubid           String?
+  unifiedRecord  UnifiedRecord? @relation(fields: [ubid], references: [ubid])
+  status         String         @default("PENDING") // PENDING, LINKED, REVIEW
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+}
+
+model EventDoubt {
+  id             String         @id @default(uuid())
+  eventId        String
+  ubid           String
+  confidence     Float
+  status         String         @default("PENDING") // PENDING, APPROVED, REJECTED
+  comments       String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}

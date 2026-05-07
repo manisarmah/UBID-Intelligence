@@ -1,0 +1,6 @@
+Department,Name,Address,Pincode,City,PAN,GSTIN,Phone,Type
+Factories,Acme Corp Pvt Ltd,123 Industrial Area,560001,Bangalore,ABCDE1234F,29ABCDE1234F1Z5,9876543210,Manufacturing
+Labour,Acme Corporation,123 Ind Area,560001,BLR,,29ABCDE1234F1Z5,9876543210,Manufacturing
+Shops,Tech Innovations,45 Tech Park Phase 1,560100,Electronic City,XYZPQ9876S,,,IT Services
+BESCOM,Tech Innovations Pvt Ltd,45 Tech Park Phase 1,560100,Bangalore,XYZPQ9876S,,9998887776,IT Services
+KSPCB,Global Exports,Plot 89 Peenya,560058,Bangalore,,,29LMNOP5678Q1Z9,,Textiles
