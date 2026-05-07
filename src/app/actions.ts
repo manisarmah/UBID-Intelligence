@@ -743,8 +743,6 @@ export async function runEventMappingEngine() {
 
     if (ops.length > 0) {
       await prisma.$transaction(ops);
-    }edCount++;
-      }
     }
 
     return { 
