@@ -1081,8 +1081,8 @@ INSTRUCTIONS:
       return { success: true, isValid: false };
     }
 
-    // Security block to prevent destructive queries
-    if (/insert|update|delete|drop|alter|create/i.test(parsed.sql)) {
+    // Security block to prevent destructive queries (using word boundaries to avoid matching columns like createdAt/updatedAt)
+    if (/\b(insert|update|delete|drop|alter|create)\b/i.test(parsed.sql)) {
        return { success: false, error: "Only SELECT queries are allowed for security." };
     }
 
