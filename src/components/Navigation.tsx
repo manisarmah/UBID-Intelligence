@@ -13,7 +13,7 @@ export default function Navigation() {
     { href: "/review-events", label: "Event Review" },
     { href: "/dashboard", label: "Dashboard" },
     { href: "/audit", label: "Audit / Undo" },
-    { href: "/query", label: "Ask AI (NLQ)" }
+    { href: "/query", label: "Ask AI " }
   ];
 
   return (
